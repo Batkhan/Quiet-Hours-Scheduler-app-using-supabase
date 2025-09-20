@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "crons": [
+    {
+      "path": "/api/sendQuietHourEmails",  // your API route
+      "schedule": "*/5 * * * *",          // every 5 minutes
+      "timezone": "Asia/Kolkata"          // run in IST
+    }
+  ]
+}
