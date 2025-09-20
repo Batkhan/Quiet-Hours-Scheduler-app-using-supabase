@@ -36,7 +36,18 @@ function toISTString(date) {
     .replace(" ", "T");
 }
 
-export async function GET() {
+export async function GET(request) {
+  // 🔒 Verify secret to prevent public triggering
+  const url = new URL(request.url);
+  const qSecret = url.searchParams.get("secret");
+  const headerSecret = request.headers.get("x-cron-secret");
+  const secret = process.env.CRON_SECRET;
+  if (!secret || (qSecret !== secret && headerSecret !== secret)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+
   await initMongo();
 
   const now = new Date();
@@ -63,7 +74,9 @@ export async function GET() {
 
   if (error) {
     console.error("Supabase error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+    });
   }
 
   console.log("Filtered blocks (eligible):", blocks);
@@ -129,7 +142,10 @@ export async function GET() {
 
     // Mark as notified in Supabase
     try {
-      await supabase.from("quiet_hours").update({ notified: true }).eq("id", block.id);
+      await supabase
+        .from("quiet_hours")
+        .update({ notified: true })
+        .eq("id", block.id);
     } catch (err) {
       console.error("Supabase update error:", err);
     }
@@ -144,17 +160,37 @@ export async function GET() {
 async function sendEmail(to, startTime, endTime) {
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: 587,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    port: Number(process.env.SMTP_PORT || 587),
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
   });
 
-  const startLocal = new Date(startTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour12: true });
-  const endLocal = new Date(endTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour12: true });
+  const startLocal = new Date(startTime).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour12: true,
+  });
+  const endLocal = new Date(endTime).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour12: true,
+  });
+
+  const subject = "⏰ Your quiet hour is starting soon";
+  const text = `Your silent study block starts at ${startLocal} and ends at ${endLocal}.`;
+  const html = `
+    <div style="font-family:sans-serif;padding:12px;">
+      <h2>⏰ Quiet Hour Reminder</h2>
+      <p>Your silent study block starts at <strong>${startLocal}</strong> and ends at <strong>${endLocal}</strong>.</p>
+    </div>
+  `;
 
   await transporter.sendMail({
-    from: '"Quiet Hours" <noreply@example.com>',
+    from: `"Quiet Hours" <${process.env.SMTP_USER}>`, // ✅ use Brevo sender email
     to,
-    subject: "⏰ Your quiet hour is starting soon",
-    text: `Your silent study block starts at ${startLocal} and ends at ${endLocal}.`,
+    subject,
+    text,
+    html,
   });
 }
+
