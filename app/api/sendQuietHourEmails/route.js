@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
+import { DateTime } from "luxon";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -157,24 +158,13 @@ export async function GET(request) {
   );
 }
 
-async function sendEmail(to, startTime, endTime) {
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
 
-  const startLocal = new Date(startTime).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour12: true,
-  });
-  const endLocal = new Date(endTime).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour12: true,
-  });
+async function sendEmail(to, startTime, endTime) {
+  const startLocal = DateTime.fromISO(startTime, { zone: "Asia/Kolkata" })
+    .toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
+
+  const endLocal = DateTime.fromISO(endTime, { zone: "Asia/Kolkata" })
+    .toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
 
   const subject = "⏰ Your quiet hour is starting soon";
   const text = `Your silent study block starts at ${startLocal} and ends at ${endLocal}.`;
@@ -184,6 +174,8 @@ async function sendEmail(to, startTime, endTime) {
       <p>Your silent study block starts at <strong>${startLocal}</strong> and ends at <strong>${endLocal}</strong>.</p>
     </div>
   `;
+
+
 
   await transporter.sendMail({
   from: `"Quiet Hours" <batmanbeginsatdawn@gmail.com>`, // must match verified sender
