@@ -158,8 +158,16 @@ export async function GET(request) {
   );
 }
 
-
 async function sendEmail(to, startTime, endTime) {
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
   const startLocal = DateTime.fromISO(startTime, { zone: "Asia/Kolkata" })
     .toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
 
@@ -174,8 +182,6 @@ async function sendEmail(to, startTime, endTime) {
       <p>Your silent study block starts at <strong>${startLocal}</strong> and ends at <strong>${endLocal}</strong>.</p>
     </div>
   `;
-
-
 
   await transporter.sendMail({
   from: `"Quiet Hours" <batmanbeginsatdawn@gmail.com>`, // must match verified sender
