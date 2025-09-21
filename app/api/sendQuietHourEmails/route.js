@@ -186,11 +186,11 @@ async function sendEmail(to, startTime, endTime) {
   `;
 
   await transporter.sendMail({
-    from: `"Quiet Hours" <${process.env.SMTP_USER}>`, // ✅ use Brevo sender email
-    to,
-    subject,
-    text,
-    html,
+  from: `"Quiet Hours" <batmanbeginsatdawn@gmail.com>`, // must match verified sender
+  to,
+  subject,
+  text,
+  html,
   });
 }
 
