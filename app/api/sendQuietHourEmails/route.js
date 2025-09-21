@@ -31,12 +31,6 @@ async function initMongo() {
   }
 }
 
-function toISTString(date) {
-  return date
-    .toLocaleString("sv-SE", { timeZone: "Asia/Kolkata", hour12: false })
-    .replace(" ", "T");
-}
-
 export async function GET(request) {
   // 🔒 Verify secret to prevent public triggering
   const url = new URL(request.url);
@@ -51,20 +45,15 @@ export async function GET(request) {
 
   await initMongo();
 
-  const now = new Date();
-  const bufferMinutes = 5;
-  const futureMinutes = 60;
+  // ✅ Always work in IST
+  const nowIST = DateTime.now().setZone("Asia/Kolkata");
+  const bufferStartIST = nowIST.minus({ minutes: 5 }).toISO();
+  const futureEndIST = nowIST.plus({ minutes: 60 }).toISO();
 
-  const bufferStart = new Date(now.getTime() - bufferMinutes * 60 * 1000);
-  const futureEnd = new Date(now.getTime() + futureMinutes * 60 * 1000);
-
-  const bufferStartIST = toISTString(bufferStart);
-  const futureEndIST = toISTString(futureEnd);
-
-  console.log("=== DEBUG TIME WINDOW ===");
-  console.log("Now:", now.toISOString());
-  console.log("Buffer start:", bufferStartIST);
-  console.log("Future end:", futureEndIST);
+  console.log("=== DEBUG TIME WINDOW (IST) ===");
+  console.log("Now IST:", nowIST.toISO());
+  console.log("Buffer start IST:", bufferStartIST);
+  console.log("Future end IST:", futureEndIST);
 
   const { data: blocks, error } = await supabase
     .from("quiet_hours")
@@ -184,11 +173,10 @@ async function sendEmail(to, startTime, endTime) {
   `;
 
   await transporter.sendMail({
-  from: `"Quiet Hours" <batmanbeginsatdawn@gmail.com>`, // must match verified sender
-  to,
-  subject,
-  text,
-  html,
+    from: `"Quiet Hours" <batmanbeginsatdawn@gmail.com>`, // must match verified sender
+    to,
+    subject,
+    text,
+    html,
   });
 }
-
