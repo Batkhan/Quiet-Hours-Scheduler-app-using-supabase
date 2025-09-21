@@ -1,0 +1,23 @@
+name: Test Quiet Hour Emails
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  test-send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Call Vercel API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          echo "Calling Vercel API at $(date -u)"
+          curl -v "https://quiet-hours-scheduler-app-using-sup.vercel.app/api/sendQuietHourEmails?secret=${CRON_SECRET}"
